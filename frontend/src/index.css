@@ -446,3 +446,32 @@ input {
 .resolve-button:hover {
   opacity: 0.9;
 }
+
+.admin-stats {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(160px, 1fr)
+  );
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.stat-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+}
+
+.stat-card h3 {
+  margin: 0 0 10px;
+  font-size: 15px;
+  color: #64748b;
+}
+
+.stat-card h1 {
+  margin: 0;
+  font-size: 32px;
+}

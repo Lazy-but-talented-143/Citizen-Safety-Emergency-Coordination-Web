@@ -50,8 +50,26 @@ function Dashboard() {
   // ==================================================
 
   const [securityEmergencies, setSecurityEmergencies] = useState([]);
-  const [showSecurityEmergencies, setShowSecurityEmergencies] =
-    useState(false);
+  const [showSecurityEmergencies, setShowSecurityEmergencies] = useState(false);
+
+  // ==================================================
+  // ADMIN STATE
+  // ==================================================
+
+  const [adminEmergencies, setAdminEmergencies] = useState([]);
+  const [adminSocieties, setAdminSocieties] = useState([]);
+
+  const [showAdminDashboard, setShowAdminDashboard] = useState(false);
+  const [showAdminSocieties, setShowAdminSocieties] = useState(false);
+  const [showAdminEmergencies, setShowAdminEmergencies] = useState(false);
+
+  const [adminStats, setAdminStats] = useState({
+    total: 0,
+    pending: 0,
+    assigned: 0,
+    inProgress: 0,
+    resolved: 0,
+  });
 
   // ==================================================
   // LOGOUT
@@ -61,6 +79,7 @@ function Dashboard() {
     localStorage.clear();
     navigate("/login");
   };
+  
 
   // ==================================================
   // RESIDENT - LOAD EMERGENCIES
@@ -329,6 +348,95 @@ function Dashboard() {
   };
 
   // ==================================================
+  // ADMIN - LOAD EMERGENCIES
+  // ==================================================
+
+  const loadAdminEmergencies = async () => {
+    try {
+      setError("");
+
+      const response = await api.get("emergencies/");
+
+      const data = response.data;
+
+      setAdminEmergencies(data);
+
+      setAdminStats({
+        total: data.length,
+        pending: data.filter(
+          (item) => item.status === "PENDING"
+        ).length,
+        assigned: data.filter(
+          (item) => item.status === "ASSIGNED"
+        ).length,
+        inProgress: data.filter(
+          (item) => item.status === "IN_PROGRESS"
+        ).length,
+        resolved: data.filter(
+          (item) => item.status === "RESOLVED"
+        ).length,
+      });
+    } catch (err) {
+      console.error(err);
+
+      setError(
+        err.response?.data?.detail ||
+          "Unable to load admin emergencies."
+      );
+    }
+  };
+
+  // ==================================================
+  // ADMIN - LOAD SOCIETIES
+  // ==================================================
+
+  const loadAdminSocieties = async () => {
+    try {
+      setError("");
+
+      const response = await api.get("societies/");
+
+      setAdminSocieties(response.data);
+    } catch (err) {
+      console.error(err);
+
+      setError(
+        err.response?.data?.detail ||
+          "Unable to load societies."
+      );
+    }
+  };
+
+  // ==================================================
+  // ADMIN - RESOLVE EMERGENCY
+  // ==================================================
+
+  const adminResolveEmergency = async (emergencyId) => {
+    try {
+      setError("");
+      setMessage("");
+
+      await api.patch(
+        `emergencies/${emergencyId}/resolve/`
+      );
+
+      setMessage(
+        `Emergency #${emergencyId} resolved successfully.`
+      );
+
+      await loadAdminEmergencies();
+    } catch (err) {
+      console.error(err);
+
+      setError(
+        err.response?.data?.error ||
+          err.response?.data?.detail ||
+          "Unable to resolve emergency."
+      );
+    }
+  };
+
+  // ==================================================
   // INITIAL DATA
   // ==================================================
 
@@ -345,6 +453,11 @@ function Dashboard() {
 
     if (user.role === "SECURITY") {
       loadSecurityEmergencies();
+    }
+
+    if (user.role === "ADMIN") {
+      loadAdminEmergencies();
+      loadAdminSocieties();
     }
   }, []);
 
@@ -1087,51 +1200,306 @@ function Dashboard() {
           </>
         )}
 
-        {/* ==================================================
-            ADMIN
-        ================================================== */}
+{/* ==================================================
+    ADMIN
+================================================== */}
 
-        {user.role === "ADMIN" && (
-          <div className="cards">
+{user.role === "ADMIN" && (
+  <>
+    {/* ADMIN CARDS */}
 
-            <div className="feature-card">
-              <div className="feature-icon">
-                D
+    <div className="cards">
+
+      {/* ADMIN DASHBOARD */}
+
+      <div
+        className="feature-card"
+        onClick={() => {
+          setShowAdminDashboard(true);
+          setShowAdminSocieties(false);
+          setShowAdminEmergencies(false);
+
+          setMessage("");
+          setError("");
+
+          loadAdminEmergencies();
+        }}
+      >
+        <div className="feature-icon">
+          D
+        </div>
+
+        <h2>Admin Dashboard</h2>
+
+        <p>
+          View platform statistics.
+        </p>
+      </div>
+
+      {/* SOCIETIES */}
+
+      <div
+        className="feature-card"
+        onClick={() => {
+          setShowAdminDashboard(false);
+          setShowAdminSocieties(true);
+          setShowAdminEmergencies(false);
+
+          setMessage("");
+          setError("");
+
+          loadAdminSocieties();
+        }}
+      >
+        <div className="feature-icon">
+          S
+        </div>
+
+        <h2>Societies</h2>
+
+        <p>
+          View registered societies.
+        </p>
+      </div>
+
+      {/* EMERGENCIES */}
+
+      <div
+        className="feature-card emergency-card"
+        onClick={() => {
+          setShowAdminDashboard(false);
+          setShowAdminSocieties(false);
+          setShowAdminEmergencies(true);
+
+          setMessage("");
+          setError("");
+
+          loadAdminEmergencies();
+        }}
+      >
+        <div className="feature-icon">
+          !
+        </div>
+
+        <h2>Emergencies</h2>
+
+        <p>
+          Monitor all emergency incidents.
+        </p>
+      </div>
+
+    </div>
+
+    {/* ==================================================
+        ADMIN DASHBOARD
+    ================================================== */}
+
+    {showAdminDashboard && (
+      <div className="resident-panel">
+
+        <h2>Platform Statistics</h2>
+
+        <div className="admin-stats">
+
+          <div className="stat-card">
+            <h3>Total Emergencies</h3>
+            <h1>{adminStats.total}</h1>
+          </div>
+
+          <div className="stat-card">
+            <h3>Pending</h3>
+            <h1>{adminStats.pending}</h1>
+          </div>
+
+          <div className="stat-card">
+            <h3>Assigned</h3>
+            <h1>{adminStats.assigned}</h1>
+          </div>
+
+          <div className="stat-card">
+            <h3>In Progress</h3>
+            <h1>{adminStats.inProgress}</h1>
+          </div>
+
+          <div className="stat-card">
+            <h3>Resolved</h3>
+            <h1>{adminStats.resolved}</h1>
+          </div>
+
+        </div>
+
+      </div>
+    )}
+
+    {/* ==================================================
+        ADMIN SOCIETIES
+    ================================================== */}
+
+    {showAdminSocieties && (
+      <div className="resident-panel">
+
+        <h2>Registered Societies</h2>
+
+        {adminSocieties.length === 0 ? (
+          <p>No societies found.</p>
+        ) : (
+          <div className="emergency-list">
+
+            {adminSocieties.map((society) => (
+              <div
+                className="emergency-item"
+                key={society.id}
+              >
+                <h3>
+                  {society.name || `Society #${society.id}`}
+                </h3>
+
+                {society.address && (
+                  <p>
+                    <strong>Address:</strong>{" "}
+                    {society.address}
+                  </p>
+                )}
+
+                {society.city && (
+                  <p>
+                    <strong>City:</strong>{" "}
+                    {society.city}
+                  </p>
+                )}
+
+                <p>
+                  <strong>Society ID:</strong>{" "}
+                  {society.id}
+                </p>
               </div>
-
-              <h2>Admin Dashboard</h2>
-
-              <p>
-                View platform statistics.
-              </p>
-            </div>
-
-            <div className="feature-card">
-              <div className="feature-icon">
-                S
-              </div>
-
-              <h2>Societies</h2>
-
-              <p>
-                Manage societies, blocks and flats.
-              </p>
-            </div>
-
-            <div className="feature-card">
-              <div className="feature-icon">
-                !
-              </div>
-
-              <h2>Emergencies</h2>
-
-              <p>
-                Monitor all emergency incidents.
-              </p>
-            </div>
+            ))}
 
           </div>
         )}
+
+      </div>
+    )}
+
+    {/* ==================================================
+        ADMIN EMERGENCIES
+    ================================================== */}
+
+    {showAdminEmergencies && (
+      <div className="resident-panel">
+
+        <h2>All Emergencies</h2>
+
+        {adminEmergencies.length === 0 ? (
+          <p>No emergencies found.</p>
+        ) : (
+          <div className="emergency-list">
+
+            {adminEmergencies.map((emergency) => (
+              <div
+                className="emergency-item"
+                key={emergency.id}
+              >
+
+                <div className="emergency-top">
+
+                  <h3>
+                    Emergency #{emergency.id}
+                  </h3>
+
+                  <span
+                    className={`status status-${emergency.status.toLowerCase()}`}
+                  >
+                    {emergency.status}
+                  </span>
+
+                </div>
+
+                <p>
+                  <strong>Type:</strong>{" "}
+                  {emergency.emergency_type}
+                </p>
+
+                <p>
+                  <strong>Location:</strong>{" "}
+                  {emergency.location}
+                </p>
+
+                <p>
+                  <strong>Description:</strong>{" "}
+                  {emergency.description}
+                </p>
+
+                <p>
+                  <strong>Resident ID:</strong>{" "}
+                  {emergency.user}
+                </p>
+
+                {emergency.assigned_volunteer && (
+                  <p>
+                    <strong>Volunteer ID:</strong>{" "}
+                    {emergency.assigned_volunteer}
+                  </p>
+                )}
+
+                {emergency.assigned_security && (
+                  <p>
+                    <strong>Security ID:</strong>{" "}
+                    {emergency.assigned_security}
+                  </p>
+                )}
+
+                <p>
+                  <strong>Created:</strong>{" "}
+                  {new Date(
+                    emergency.created_at
+                  ).toLocaleString()}
+                </p>
+
+                {emergency.assistance_started_at && (
+                  <p>
+                    <strong>
+                      Assistance Started:
+                    </strong>{" "}
+                    {new Date(
+                      emergency.assistance_started_at
+                    ).toLocaleString()}
+                  </p>
+                )}
+
+                {emergency.resolved_at && (
+                  <p>
+                    <strong>Resolved:</strong>{" "}
+                    {new Date(
+                      emergency.resolved_at
+                    ).toLocaleString()}
+                  </p>
+                )}
+
+                {emergency.status === "IN_PROGRESS" && (
+                  <button
+                    className="resolve-button"
+                    onClick={() =>
+                      adminResolveEmergency(
+                        emergency.id
+                      )
+                    }
+                  >
+                    RESOLVE EMERGENCY
+                  </button>
+                )}
+
+              </div>
+            ))}
+
+          </div>
+        )}
+
+      </div>
+    )}
+
+  </>
+)}
 
       </main>
     </div>
