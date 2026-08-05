@@ -432,3 +432,17 @@ input {
   color: white;
   margin-top: 12px;
 }
+.resolve-button {
+  background: #16a34a;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 9px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 12px;
+}
+
+.resolve-button:hover {
+  opacity: 0.9;
+}

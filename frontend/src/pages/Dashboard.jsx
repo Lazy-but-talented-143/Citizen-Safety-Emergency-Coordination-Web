@@ -46,6 +46,14 @@ function Dashboard() {
     useState(false);
 
   // ==================================================
+  // SECURITY STATE
+  // ==================================================
+
+  const [securityEmergencies, setSecurityEmergencies] = useState([]);
+  const [showSecurityEmergencies, setShowSecurityEmergencies] =
+    useState(false);
+
+  // ==================================================
   // LOGOUT
   // ==================================================
 
@@ -61,7 +69,6 @@ function Dashboard() {
   const loadEmergencies = async () => {
     try {
       const response = await api.get("emergencies/");
-
       setEmergencies(response.data);
       setError("");
     } catch (err) {
@@ -77,7 +84,6 @@ function Dashboard() {
   const loadNotifications = async () => {
     try {
       const response = await api.get("notifications/");
-
       setNotifications(response.data);
       setError("");
     } catch (err) {
@@ -177,7 +183,6 @@ function Dashboard() {
       setError("");
 
       const response = await api.get("emergencies/");
-
       setVolunteerEmergencies(response.data);
     } catch (err) {
       console.error(err);
@@ -195,7 +200,6 @@ function Dashboard() {
       setError("");
 
       const response = await api.get("notifications/");
-
       setVolunteerNotifications(response.data);
     } catch (err) {
       console.error(err);
@@ -276,6 +280,55 @@ function Dashboard() {
   };
 
   // ==================================================
+  // SECURITY - LOAD EMERGENCIES
+  // ==================================================
+
+  const loadSecurityEmergencies = async () => {
+    try {
+      setError("");
+
+      const response = await api.get("emergencies/");
+      setSecurityEmergencies(response.data);
+    } catch (err) {
+      console.error(err);
+
+      setError(
+        err.response?.data?.detail ||
+          "Unable to load security emergencies."
+      );
+    }
+  };
+
+  // ==================================================
+  // SECURITY - RESOLVE EMERGENCY
+  // ==================================================
+
+  const resolveEmergency = async (emergencyId) => {
+    try {
+      setError("");
+      setMessage("");
+
+      await api.patch(
+        `emergencies/${emergencyId}/resolve/`
+      );
+
+      setMessage(
+        `Emergency #${emergencyId} resolved successfully.`
+      );
+
+      await loadSecurityEmergencies();
+    } catch (err) {
+      console.error(err);
+
+      setError(
+        err.response?.data?.error ||
+          err.response?.data?.detail ||
+          "Unable to resolve emergency."
+      );
+    }
+  };
+
+  // ==================================================
   // INITIAL DATA
   // ==================================================
 
@@ -288,6 +341,10 @@ function Dashboard() {
     if (user.role === "VOLUNTEER") {
       loadVolunteerEmergencies();
       loadVolunteerNotifications();
+    }
+
+    if (user.role === "SECURITY") {
+      loadSecurityEmergencies();
     }
   }, []);
 
@@ -317,9 +374,7 @@ function Dashboard() {
   return (
     <div className="dashboard">
 
-      {/* ==================================================
-          NAVBAR
-      ================================================== */}
+      {/* NAVBAR */}
 
       <header className="navbar">
         <div>
@@ -337,9 +392,7 @@ function Dashboard() {
 
       <main className="dashboard-content">
 
-        {/* ==================================================
-            WELCOME
-        ================================================== */}
+        {/* WELCOME */}
 
         <div className="welcome-card">
           <p>WELCOME</p>
@@ -355,9 +408,7 @@ function Dashboard() {
           <h3>{getRoleMessage()}</h3>
         </div>
 
-        {/* ==================================================
-            MESSAGES
-        ================================================== */}
+        {/* MESSAGES */}
 
         {message && (
           <div className="success-message">
@@ -378,8 +429,6 @@ function Dashboard() {
         {user.role === "RESIDENT" && (
           <>
             <div className="cards">
-
-              {/* SOS */}
 
               <div
                 className="feature-card emergency-card"
@@ -402,8 +451,6 @@ function Dashboard() {
                 </p>
               </div>
 
-              {/* MY EMERGENCIES */}
-
               <div
                 className="feature-card"
                 onClick={() => {
@@ -424,8 +471,6 @@ function Dashboard() {
                   Track your emergency requests.
                 </p>
               </div>
-
-              {/* NOTIFICATIONS */}
 
               <div
                 className="feature-card"
@@ -450,9 +495,7 @@ function Dashboard() {
 
             </div>
 
-            {/* ==================================================
-                RESIDENT SOS PANEL
-            ================================================== */}
+            {/* SOS PANEL */}
 
             {showSOS && (
               <div className="resident-panel">
@@ -487,9 +530,7 @@ function Dashboard() {
               </div>
             )}
 
-            {/* ==================================================
-                RESIDENT EMERGENCIES PANEL
-            ================================================== */}
+            {/* RESIDENT EMERGENCIES */}
 
             {showEmergencies && (
               <div className="resident-panel">
@@ -572,9 +613,7 @@ function Dashboard() {
               </div>
             )}
 
-            {/* ==================================================
-                RESIDENT NOTIFICATIONS
-            ================================================== */}
+            {/* RESIDENT NOTIFICATIONS */}
 
             {showNotifications && (
               <div className="resident-panel">
@@ -623,10 +662,7 @@ function Dashboard() {
 
         {user.role === "VOLUNTEER" && (
           <>
-
             <div className="cards">
-
-              {/* AVAILABILITY */}
 
               <div
                 className="feature-card"
@@ -650,8 +686,6 @@ function Dashboard() {
                 </p>
               </div>
 
-              {/* INCIDENTS */}
-
               <div
                 className="feature-card emergency-card"
                 onClick={() => {
@@ -672,8 +706,6 @@ function Dashboard() {
                   Accept and respond to emergencies.
                 </p>
               </div>
-
-              {/* NOTIFICATIONS */}
 
               <div
                 className="feature-card"
@@ -698,9 +730,7 @@ function Dashboard() {
 
             </div>
 
-            {/* ==================================================
-                VOLUNTEER AVAILABILITY
-            ================================================== */}
+            {/* VOLUNTEER AVAILABILITY */}
 
             {showAvailability && (
               <div className="resident-panel">
@@ -746,9 +776,7 @@ function Dashboard() {
               </div>
             )}
 
-            {/* ==================================================
-                VOLUNTEER INCIDENTS
-            ================================================== */}
+            {/* VOLUNTEER INCIDENTS */}
 
             {showVolunteerIncidents && (
               <div className="resident-panel">
@@ -756,9 +784,7 @@ function Dashboard() {
                 <h2>Emergency Incidents</h2>
 
                 {volunteerEmergencies.length === 0 ? (
-                  <p>
-                    No incidents available.
-                  </p>
+                  <p>No incidents available.</p>
                 ) : (
                   <div className="emergency-list">
 
@@ -805,8 +831,6 @@ function Dashboard() {
                             ).toLocaleString()}
                           </p>
 
-                          {/* ACCEPT */}
-
                           {emergency.status === "PENDING" && (
                             <button
                               className="accept-button"
@@ -819,8 +843,6 @@ function Dashboard() {
                               ACCEPT EMERGENCY
                             </button>
                           )}
-
-                          {/* START ASSISTANCE */}
 
                           {emergency.status === "ASSIGNED" &&
                             emergency.assigned_volunteer ===
@@ -858,9 +880,7 @@ function Dashboard() {
               </div>
             )}
 
-            {/* ==================================================
-                VOLUNTEER NOTIFICATIONS
-            ================================================== */}
+            {/* VOLUNTEER NOTIFICATIONS */}
 
             {showVolunteerNotifications && (
               <div className="resident-panel">
@@ -868,9 +888,7 @@ function Dashboard() {
                 <h2>Volunteer Notifications</h2>
 
                 {volunteerNotifications.length === 0 ? (
-                  <p>
-                    No notifications available.
-                  </p>
+                  <p>No notifications available.</p>
                 ) : (
                   <div className="notification-list">
 
@@ -913,33 +931,160 @@ function Dashboard() {
         ================================================== */}
 
         {user.role === "SECURITY" && (
-          <div className="cards">
+          <>
+            <div className="cards">
 
-            <div className="feature-card emergency-card">
-              <div className="feature-icon">
-                !
+              {/* SECURITY INCIDENTS */}
+
+              <div
+                className="feature-card emergency-card"
+                onClick={() => {
+                  setShowSecurityEmergencies(true);
+                  setMessage("");
+                  setError("");
+                  loadSecurityEmergencies();
+                }}
+              >
+                <div className="feature-icon">
+                  !
+                </div>
+
+                <h2>Emergency Incidents</h2>
+
+                <p>
+                  Monitor incidents in your society.
+                </p>
               </div>
 
-              <h2>Emergency Incidents</h2>
+              {/* RESPONDER ASSIGNMENT */}
 
-              <p>
-                Monitor incidents in your society.
-              </p>
-            </div>
+              <div className="feature-card">
+                <div className="feature-icon">
+                  A
+                </div>
 
-            <div className="feature-card">
-              <div className="feature-icon">
-                A
+                <h2>Responder Assignment</h2>
+
+                <p>
+                  Assign emergency responders.
+                </p>
               </div>
 
-              <h2>Responder Assignment</h2>
-
-              <p>
-                Assign emergency responders.
-              </p>
             </div>
 
-          </div>
+            {/* SECURITY EMERGENCY PANEL */}
+
+            {showSecurityEmergencies && (
+              <div className="resident-panel">
+
+                <h2>Emergency Incidents</h2>
+
+                {securityEmergencies.length === 0 ? (
+                  <p>No emergencies found.</p>
+                ) : (
+                  <div className="emergency-list">
+
+                    {securityEmergencies.map(
+                      (emergency) => (
+                        <div
+                          className="emergency-item"
+                          key={emergency.id}
+                        >
+
+                          <div className="emergency-top">
+
+                            <h3>
+                              Emergency #{emergency.id}
+                            </h3>
+
+                            <span
+                              className={`status status-${emergency.status.toLowerCase()}`}
+                            >
+                              {emergency.status}
+                            </span>
+
+                          </div>
+
+                          <p>
+                            <strong>Type:</strong>{" "}
+                            {emergency.emergency_type}
+                          </p>
+
+                          <p>
+                            <strong>Location:</strong>{" "}
+                            {emergency.location}
+                          </p>
+
+                          <p>
+                            <strong>Description:</strong>{" "}
+                            {emergency.description}
+                          </p>
+
+                          <p>
+                            <strong>Created:</strong>{" "}
+                            {new Date(
+                              emergency.created_at
+                            ).toLocaleString()}
+                          </p>
+
+                          {emergency.assigned_volunteer && (
+                            <p>
+                              <strong>
+                                Assigned Volunteer ID:
+                              </strong>{" "}
+                              {emergency.assigned_volunteer}
+                            </p>
+                          )}
+
+                          {emergency.assistance_started_at && (
+                            <p>
+                              <strong>
+                                Assistance Started:
+                              </strong>{" "}
+                              {new Date(
+                                emergency.assistance_started_at
+                              ).toLocaleString()}
+                            </p>
+                          )}
+
+                          {emergency.resolved_at && (
+                            <p>
+                              <strong>
+                                Resolved:
+                              </strong>{" "}
+                              {new Date(
+                                emergency.resolved_at
+                              ).toLocaleString()}
+                            </p>
+                          )}
+
+                          {/* SECURITY CAN RESOLVE
+                              ONLY IN-PROGRESS INCIDENTS */}
+
+                          {emergency.status === "IN_PROGRESS" && (
+                            <button
+                              className="resolve-button"
+                              onClick={() =>
+                                resolveEmergency(
+                                  emergency.id
+                                )
+                              }
+                            >
+                              RESOLVE EMERGENCY
+                            </button>
+                          )}
+
+                        </div>
+                      )
+                    )}
+
+                  </div>
+                )}
+
+              </div>
+            )}
+
+          </>
         )}
 
         {/* ==================================================
