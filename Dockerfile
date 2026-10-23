@@ -20,7 +20,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application source code
 COPY . /app/
 
-# Expose Daphne ASGI server port
+# Expose Daphne/Uvicorn ASGI server port
 EXPOSE 8000
 
-CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput --clear && exec daphne -b 0.0.0.0 -p ${PORT:-8000} rescue.asgi:application"]
+CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput --clear && exec uvicorn rescue.asgi:application --host 0.0.0.0 --port ${PORT:-8000}"]
