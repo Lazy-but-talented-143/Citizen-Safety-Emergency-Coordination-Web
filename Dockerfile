@@ -20,9 +20,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application source code
 COPY . /app/
 
-RUN sed -i 's/\r$//' /app/entrypoint.sh && chmod +x /app/entrypoint.sh
-
 # Expose Daphne ASGI server port
 EXPOSE 8000
 
-CMD ["/bin/sh", "/app/entrypoint.sh"]
+CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput --clear && exec daphne -b 0.0.0.0 -p ${PORT:-8000} rescue.asgi:application"]
