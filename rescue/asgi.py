@@ -1,15 +1,19 @@
 import os
+from django.core.asgi import get_asgi_application
+
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "rescue.settings")
+
+# Initialize Django ASGI application early to ensure the AppRegistry is populated
+django_asgi_app = get_asgi_application()
 
 try:
     from channels.routing import ProtocolTypeRouter, URLRouter
     from .ws_auth import JWTAuthMiddleware
-    from django.core.asgi import get_asgi_application
     from .routing import websocket_urlpatterns
+
     application = ProtocolTypeRouter({
-        "http": get_asgi_application(),
+        "http": django_asgi_app,
         "websocket": JWTAuthMiddleware(URLRouter(websocket_urlpatterns)),
     })
 except ImportError:
-    from django.core.asgi import get_asgi_application
-    application = get_asgi_application()
+    application = django_asgi_app
