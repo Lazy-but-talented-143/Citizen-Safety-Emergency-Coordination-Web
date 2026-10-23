@@ -1696,15 +1696,18 @@ class ChatMessageViewSet(viewsets.ModelViewSet):
         msg = ChatMessage.objects.create(emergency=emergency, sender=request.user, message=text)
         audit(emergency, request.user, "CHAT_MESSAGE", text[:200])
         # Notify other incident participants through the existing notification layer.
-        participant_ids = set([emergency.user_id, emergency.assigned_security_id, emergency.assigned_volunteer_id])
-        participant_ids.update(emergency.additional_responders.values_list("id", flat=True))
-        participant_ids.update(EmergencyEscalation.objects.filter(emergency=emergency, response_status__in=["WAITING", "ACCEPTED"]).values_list("responder_id", flat=True))
-        participant_ids.discard(None); participant_ids.discard(request.user.id)
-        for uid in participant_ids:
-            try:
-                notify(User.objects.get(id=uid), emergency, "New Emergency Chat Message", f"{request.user.get_full_name() or request.user.username}: {text[:120]}")
-            except User.DoesNotExist:
-                pass
+        try:
+            participant_ids = set([emergency.user_id, emergency.assigned_security_id, emergency.assigned_volunteer_id])
+            participant_ids.update(emergency.additional_responders.values_list("id", flat=True))
+            participant_ids.update(EmergencyEscalation.objects.filter(emergency=emergency, response_status__in=["WAITING", "ACCEPTED"]).values_list("responder_id", flat=True))
+            participant_ids.discard(None); participant_ids.discard(request.user.id)
+            for uid in participant_ids:
+                try:
+                    notify(User.objects.get(id=uid), emergency, "New Emergency Chat Message", f"{request.user.get_full_name() or request.user.username}: {text[:120]}")
+                except Exception:
+                    pass
+        except Exception:
+            pass
         
         # Broadcast immediately to channels WebSocket group
         try:

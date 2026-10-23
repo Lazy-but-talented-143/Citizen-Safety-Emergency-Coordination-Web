@@ -135,10 +135,10 @@ function EmergencyChat({ emergencyId, readOnly = false, onClose, emergency }) {
   }, [emergencyId, load, connectWs]);
 
   useEffect(() => {
-    if (wsStatus !== "CONNECTED") {
-      const t = setInterval(load, 10000);
-      return () => clearInterval(t);
-    }
+    // Fast fallback polling (3 seconds) ensures instant updates even if WebSocket is disconnected/reconnecting
+    const intervalTime = wsStatus === "CONNECTED" ? 15000 : 3000;
+    const t = setInterval(load, intervalTime);
+    return () => clearInterval(t);
   }, [wsStatus, load]);
 
   const send = async (e) => {
@@ -169,7 +169,7 @@ function EmergencyChat({ emergencyId, readOnly = false, onClose, emergency }) {
       // 2. Also notify via WebSocket if open
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
         try {
-          wsRef.current.send(JSON.stringify({ type: "chat_message", ...newMsg }));
+          wsRef.current.send(JSON.stringify({ type: "chat_message", payload: newMsg }));
         } catch {
           // ignore ws send failure since REST succeeded
         }

@@ -106,6 +106,14 @@ if AsyncJsonWebsocketConsumer:
 
         async def receive_json(self, content):
             user = self.scope.get("user")
+            # If a client broadcasts an already-saved message, relay it to the group
+            if content.get("type") == "chat_message" and "payload" in content:
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {"type": "chat_message", "payload": content["payload"]}
+                )
+                return
+
             text = str(content.get("message", "")).strip()
             if not user or not user.is_authenticated or not text:
                 return
