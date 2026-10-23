@@ -22,12 +22,15 @@ from accounts.models import Guardian, User, ResponderMembershipRequest
 from emergency.models import Emergency, EmergencyEscalation, Notification, AuditLog
 
 
-GUARDIAN_WAIT_SECONDS = 120
-SECURITY_WAIT_SECONDS = 120
-VOLUNTEER_WAIT_SECONDS = 120
-PENDING_CLOSE_HOURS = 6
-HANDOVER_WAIT_SECONDS = 120
-ADDITIONAL_HELP_WAIT_SECONDS = 120
+import os
+
+_DEFAULT_WAIT = int(os.getenv("ESCALATION_WAIT_SECONDS", "30"))
+GUARDIAN_WAIT_SECONDS = int(os.getenv("GUARDIAN_WAIT_SECONDS", str(_DEFAULT_WAIT)))
+SECURITY_WAIT_SECONDS = int(os.getenv("SECURITY_WAIT_SECONDS", str(_DEFAULT_WAIT)))
+VOLUNTEER_WAIT_SECONDS = int(os.getenv("VOLUNTEER_WAIT_SECONDS", str(_DEFAULT_WAIT)))
+PENDING_CLOSE_HOURS = int(os.getenv("PENDING_CLOSE_HOURS", "6"))
+HANDOVER_WAIT_SECONDS = int(os.getenv("HANDOVER_WAIT_SECONDS", str(_DEFAULT_WAIT)))
+ADDITIONAL_HELP_WAIT_SECONDS = int(os.getenv("ADDITIONAL_HELP_WAIT_SECONDS", str(_DEFAULT_WAIT)))
 
 # contact_types that belong to the main escalation chain
 CHAIN_TYPES = {"PRIMARY", "SECONDARY", "EMERGENCY", "SECURITY", "VOLUNTEER", "PENDING"}
@@ -112,6 +115,7 @@ def _guardian_stage(emergency, kind):
 
 def _security_stage(emergency):
     """Notify all eligible, available security personnel in the society."""
+    from django.db.models import Q
     users = (
         User.objects.filter(
             role="SECURITY",
@@ -119,9 +123,12 @@ def _security_stage(emergency):
             is_verified=True,
             volunteer_status="AVAILABLE",
             society_id=emergency.user.society_id,
-            responder_membership_requests__society=emergency.user.society,
-            responder_membership_requests__role="SECURITY",
-            responder_membership_requests__status="ACCEPTED",
+        )
+        .filter(
+            Q(responder_membership_requests__society=emergency.user.society,
+              responder_membership_requests__role="SECURITY",
+              responder_membership_requests__status="ACCEPTED")
+            | Q(society=emergency.user.society)
         )
         .distinct()
         .order_by("id")
@@ -151,6 +158,7 @@ def _security_stage(emergency):
 
 def _volunteer_stage(emergency):
     """Notify all eligible, available volunteers in the society."""
+    from django.db.models import Q
     users = (
         User.objects.filter(
             role="VOLUNTEER",
@@ -158,9 +166,12 @@ def _volunteer_stage(emergency):
             is_verified=True,
             volunteer_status="AVAILABLE",
             society_id=emergency.user.society_id,
-            responder_membership_requests__society=emergency.user.society,
-            responder_membership_requests__role="VOLUNTEER",
-            responder_membership_requests__status="ACCEPTED",
+        )
+        .filter(
+            Q(responder_membership_requests__society=emergency.user.society,
+              responder_membership_requests__role="VOLUNTEER",
+              responder_membership_requests__status="ACCEPTED")
+            | Q(society=emergency.user.society)
         )
         .distinct()
         .order_by("id")
