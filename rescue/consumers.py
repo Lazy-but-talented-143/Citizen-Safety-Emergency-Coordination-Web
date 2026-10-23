@@ -63,11 +63,13 @@ if AsyncJsonWebsocketConsumer:
                 return False
             if emergency.assigned_security_id == user.id or emergency.assigned_volunteer_id == user.id or emergency.additional_responders.filter(id=user.id).exists():
                 return True
-            if EmergencyEscalation.objects.filter(emergency=emergency, responder=user, response_status="ACCEPTED").exists():
+            if EmergencyEscalation.objects.filter(emergency=emergency, responder=user, response_status__in=["WAITING", "ACCEPTED"]).exists():
                 return True
             if user.role in {"RESIDENT", "GUARDIAN"}:
                 from accounts.models import Guardian
                 return Guardian.objects.filter(user=user, resident_id=emergency.user_id, relationship_status="ACCEPTED", is_active=True).exists() or EmergencyEscalation.objects.filter(emergency=emergency, guardian__user=user, response_status__in=["WAITING", "ACCEPTED"]).exists()
+            if user.role in {"SECURITY", "VOLUNTEER"}:
+                return emergency.user.society_id == user.society_id
             return False
 
         async def broadcast_presence(self):

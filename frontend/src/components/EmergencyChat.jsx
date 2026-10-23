@@ -148,26 +148,34 @@ function EmergencyChat({ emergencyId, readOnly = false, onClose, emergency }) {
     setSending(true);
     setError("");
 
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      try {
-        wsRef.current.send(JSON.stringify({ message: msgText }));
-        setText("");
-        setSending(false);
-        setTimeout(() => scrollToBottom(true), 50);
-        return;
-      } catch (err) {
-        console.error("WebSocket send error, falling back to REST", err);
-      }
-    }
-
     try {
-      await api.post("chat-messages/", {
+      // 1. Post to REST API (guarantees DB persistence & backend audit)
+      const res = await api.post("chat-messages/", {
         emergency: emergencyId,
         message: msgText,
       });
+
+      const newMsg = res.data;
+      if (newMsg && newMsg.id) {
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === newMsg.id)) return prev;
+          return [...prev, newMsg];
+        });
+      }
+
       setText("");
-      await load();
+      setTimeout(() => scrollToBottom(true), 50);
+
+      // 2. Also notify via WebSocket if open
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        try {
+          wsRef.current.send(JSON.stringify({ type: "chat_message", ...newMsg }));
+        } catch {
+          // ignore ws send failure since REST succeeded
+        }
+      }
     } catch (e) {
+      console.error("Failed to send chat message", e);
       setError(e.response?.data?.error || "Message could not be sent. Try again.");
     } finally {
       setSending(false);
