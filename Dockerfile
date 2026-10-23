@@ -23,4 +23,4 @@ COPY . /app/
 # Expose Daphne/Uvicorn ASGI server port
 EXPOSE 8000
 
-CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput --clear && exec uvicorn rescue.asgi:application --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py seed_demo && python manage.py collectstatic --noinput --clear && exec uvicorn rescue.asgi:application --host 0.0.0.0 --port ${PORT:-8000}"]
