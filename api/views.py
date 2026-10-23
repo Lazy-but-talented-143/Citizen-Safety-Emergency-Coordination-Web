@@ -493,8 +493,13 @@ class AdminProvisionView(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]
 
     def post(self, request):
-        if not is_platform_admin(request.user):
-            return Response({"error": "Only Platform Administrator can create Society Administrators."}, status=403)
+        # Platform admin can create for any society; Society admin can create for their own society
+        user = request.user
+        society_id = request.data.get("society")
+        if not is_platform_admin(user):
+            if not user.society_id:
+                return Response({"error": "Admin is not assigned to a society."}, status=403)
+            society_id = user.society_id
         username = str(request.data.get("username", "")).strip()
         first_name = str(request.data.get("first_name", "")).strip()
         last_name = str(request.data.get("last_name", "")).strip()
@@ -1698,6 +1703,21 @@ class ChatMessageViewSet(viewsets.ModelViewSet):
                 notify(User.objects.get(id=uid), emergency, "New Emergency Chat Message", f"{request.user.get_full_name() or request.user.username}: {text[:120]}")
             except User.DoesNotExist:
                 pass
+        
+        # Broadcast immediately to channels WebSocket group
+        try:
+            from asgiref.sync import async_to_sync
+            from channels.layers import get_channel_layer
+            channel_layer = get_channel_layer()
+            if channel_layer:
+                serialized = self.get_serializer(msg).data
+                async_to_sync(channel_layer.group_send)(
+                    f"chat_emergency_{emergency.id}",
+                    {"type": "chat_message", "payload": serialized}
+                )
+        except Exception:
+            pass
+
         return Response(self.get_serializer(msg).data, status=201)
 
 

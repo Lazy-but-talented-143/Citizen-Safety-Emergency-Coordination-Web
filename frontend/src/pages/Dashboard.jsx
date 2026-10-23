@@ -7,6 +7,7 @@ import SecurityDashboard from "./SecurityDashboard";
 import GuardianDashboard from "./GuardianDashboard";
 import { PointTrendGraph, StatusDonutGraph, PriorityPointGraph, TypePointGraph, BlockPointGraph } from "../components/AdminAnalyticsGraphs";
 import LiveEmergencyBoard from "../components/LiveEmergencyBoard";
+import { getWebSocketBaseUrl } from "../api/websocket";
 
 const statusLabels = [
   ["ALL", "ALL"],
@@ -411,8 +412,7 @@ function Dashboard() {
   useEffect(() => {
     const token = localStorage.getItem("access");
     if (!token || user.role === "RESIDENT") return undefined;
-    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    const wsBase = import.meta.env.VITE_WS_BASE_URL || `${protocol}://${window.location.hostname || "127.0.0.1"}:8000`;
+    const wsBase = getWebSocketBaseUrl();
     const socket = new WebSocket(`${wsBase}/ws/notifications/?token=${encodeURIComponent(token)}`);
     socket.onmessage = (event) => {
       try {
@@ -616,7 +616,12 @@ function Dashboard() {
                     <p>Controlled website user registration, responder invitations and society approvals.</p>
                   </div>
                   <div className="guardian-actions">
-                    {user.is_platform_admin && <button className="accept-button" onClick={() => setShowCreateAdmin(!showCreateAdmin)}>+ CREATE ADMIN</button>}
+                    <button className="accept-button" onClick={() => {
+                      if (!showCreateAdmin && user.society_id) {
+                        setNewAdmin(prev => ({ ...prev, society: user.society_id }));
+                      }
+                      setShowCreateAdmin(!showCreateAdmin);
+                    }}>+ CREATE ADMIN</button>
                     <button className="accept-button" onClick={() => setShowInviteResponder(!showInviteResponder)}>{showInviteResponder ? "CLOSE INVITE" : "+ INVITE RESPONDER"}</button>
                     <button className="accept-button" onClick={() => setShowCreateUser(!showCreateUser)}>{showCreateUser ? "CLOSE FORM" : "ADD USER"}</button>
                   </div>
